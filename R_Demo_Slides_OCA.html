@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>R Demo</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Lisa Callas" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# R Demo
+### Lisa Callas
+### Office of the City Auditor, City of Edmonton
+### 2021/01/19 (updated: 2021-01-20)
+
+---
+
+class: top, left
+
+# What is R?
+
+R is a language and environment for statistical computing and graphics.  
+It is open source - freely available.
+
+# What can it do?
+- Statistical analysis
+- Data cleaning and modelling
+- Natural language processing
+- Geospatial analysis
+- Machine learning...  
+(I haven't found anything it can't do, even if I haven't figured out how to do it)
+
+---
+class:  top, left
+
+# Today's demo
+- Working with large datasets from OpenData
+  - Including grouping, summarizing, calculating correlation, and sampling
+- Plotting and Graphing
+  - Both analysis and communication graphs
+- Using Google Sheets
+- Plotting data on a map
+- Visualizing relationships
+  
+
+
+
+
+
+---
+
+# Property Assessment Data
+
+Historical and current year property assessment data is publicly available on the OpenData website.
+
+.center[![padata](RDemoforOffice/PAOpenData.png)]
+
+
+```r
+PAData &lt;- read_csv("Property_Assessment_Data__Current_Calendar_Year_.csv")
+```
+
+---
+# What's in this data?
+
+
+```r
+str(PAData)
+```
+
+```
+## tibble [407,231 x 18] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+##  $ Account Number      : num [1:407231] 1194315 1034206 1114552 1012269 1191170 ...
+##  $ Suite               : chr [1:407231] NA NA NA NA ...
+##  $ House Number        : num [1:407231] 16006 10622 7531 562 17412 ...
+##  $ Street Name         : chr [1:407231] "87 AVENUE NW" "161 AVENUE NW" "151 STREET NW" "WOLF WILLOW ROAD NW" ...
+##  $ Garage              : chr [1:407231] "Y" "Y" "Y" "Y" ...
+##  $ Neighbourhood ID    : num [1:407231] 4310 3040 4430 4610 2450 4500 4180 5460 1150 5170 ...
+##  $ Neighbourhood       : chr [1:407231] "MEADOWLARK PARK" "BEAUMARIS" "RIO TERRACE" "WESTRIDGE" ...
+##  $ Ward                : chr [1:407231] "Ward 1" "Ward 2" "Ward 5" "Ward 5" ...
+##  $ Assessed Value      : num [1:407231] 304000 384500 431500 681500 348500 ...
+##  $ Latitude            : num [1:407231] 53.5 53.6 53.5 53.5 53.6 ...
+##  $ Longitude           : num [1:407231] -114 -114 -114 -114 -113 ...
+##  $ Point Location      : chr [1:407231] "POINT (-113.598369450708 53.5198329083354)" "POINT (-113.507350169226 53.6204341327331)" "POINT (-113.581328228248 53.5085621404136)" "POINT (-113.603685774009 53.5074724096517)" ...
+##  $ Assessment Class % 1: num [1:407231] 100 100 100 100 100 100 100 100 100 100 ...
+##  $ Assessment Class % 2: num [1:407231] NA NA NA NA NA NA NA NA NA NA ...
+##  $ Assessment Class % 3: num [1:407231] NA NA NA NA NA NA NA NA NA NA ...
+##  $ Assessment Class 1  : chr [1:407231] "RESIDENTIAL" "RESIDENTIAL" "RESIDENTIAL" "RESIDENTIAL" ...
+##  $ Assessment Class 2  : chr [1:407231] NA NA NA NA ...
+##  $ Assessment Class 3  : chr [1:407231] NA NA NA NA ...
+##  - attr(*, "spec")=
+##   .. cols(
+##   ..   `Account Number` = col_double(),
+##   ..   Suite = col_character(),
+##   ..   `House Number` = col_double(),
+##   ..   `Street Name` = col_character(),
+##   ..   Garage = col_character(),
+##   ..   `Neighbourhood ID` = col_double(),
+##   ..   Neighbourhood = col_character(),
+##   ..   Ward = col_character(),
+##   ..   `Assessed Value` = col_double(),
+##   ..   Latitude = col_double(),
+##   ..   Longitude = col_double(),
+##   ..   `Point Location` = col_character(),
+##   ..   `Assessment Class % 1` = col_double(),
+##   ..   `Assessment Class % 2` = col_double(),
+##   ..   `Assessment Class % 3` = col_double(),
+##   ..   `Assessment Class 1` = col_character(),
+##   ..   `Assessment Class 2` = col_character(),
+##   ..   `Assessment Class 3` = col_character()
+##   .. )
+```
+
+---
+# Grouping and summarizing data
+Which neighbourhoods have the highest average assessed value?
+
+
+```r
+#call the dataset you are working in
+PAData %&gt;% 
+#Group by neighbourhood  
+    group_by(Neighbourhood) %&gt;% 
+#Summarize by mean
+  summarize(Average_Value= mean(`Assessed Value`)) %&gt;% 
+#Sort (or extract) to identify the top 10 neighbourhoods
+  arrange(desc(Average_Value)) %&gt;% 
+#then save the top 5 into its own table  
+  head(5) -&gt; Highest_5_AveAssess_Neighbourhoods
+```
+---
+# Highest 5 Neighbourhoods
+
+```r
+Highest_5_AveAssess_Neighbourhoods
+```
+
+```
+## # A tibble: 5 x 2
+##   Neighbourhood              Average_Value
+##   &lt;chr&gt;                              &lt;dbl&gt;
+## 1 UNIVERSITY OF ALBERTA          51057085.
+## 2 MILL WOODS PARK                18278000 
+## 3 SUNWAPTA INDUSTRIAL            15777885.
+## 4 UNIVERSITY OF ALBERTA FARM     13650118.
+## 5 SOUTH EDMONTON COMMON          12455152.
+```
+---
+##Simple Scatter Plot
+
+```r
+#simple scatterplot
+Highest_5_AveAssess_Neighbourhoods %&gt;%  
+  ggplot(aes(y=Neighbourhood, x=Average_Value)) +
+  geom_point()+
+  scale_x_continuous(labels = dollar)+
+  ggtitle("Neighbourhoods with Highest Average Assessments")
+```
+
+![](R_Demo_Slides_OCA_files/figure-html/scatter-1.png)&lt;!-- --&gt;
+
+---
+# Calculating correlation
+Does having a residential garage increase the assessment value?
+
+
+```r
+#extract the columns with the data you are comparing
+corr_data &lt;- 
+  PAData %&gt;% 
+  filter(`Assessment Class 1` =="RESIDENTIAL") %&gt;% 
+  select("Garage", `Assessed Value`)
+
+#both variables must be numeric
+corr_data %&gt;% 
+  mutate(Garage= if_else(Garage=="Y", 1,0))-&gt;corr_data
+
+cor(corr_data$Garage, corr_data$`Assessed Value`) 
+```
+
+```
+## [1] 0.4452254
+```
+Yes: Moderate positive correlation
+---
+# Sampling
+A random sample of 50
+
+```r
+rsamp(PAData, n=50) 
+```
+
+```
+## # A tibble: 50 x 18
+##    `Account Number` Suite `House Number` `Street Name` Garage `Neighbourhood ~
+##               &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;             &lt;dbl&gt;
+##  1          9309469 &lt;NA&gt;            3148 78 STREET NW  N                  6750
+##  2          3833415 &lt;NA&gt;           14311 128 STREET NW Y                  3150
+##  3          1086347 705            12141 JASPER AVENU~ N                  1150
+##  4          4080065 &lt;NA&gt;            3772 30 STREET NW  Y                  6790
+##  5         10878699 &lt;NA&gt;            9937 222A STREET ~ Y                  4487
+##  6          7594609 &lt;NA&gt;           10848 69 AVENUE NW  Y                  5010
+##  7         10744165 &lt;NA&gt;              NA &lt;NA&gt;          N                  6662
+##  8         10098635 5              10650 108 STREET NW N                  1030
+##  9         10500260 &lt;NA&gt;            4313 ANNETT COMMO~ Y                  5458
+## 10          5087416 &lt;NA&gt;           12009 41 STREET NW  Y                  2040
+## # ... with 40 more rows, and 12 more variables: Neighbourhood &lt;chr&gt;,
+## #   Ward &lt;chr&gt;, `Assessed Value` &lt;dbl&gt;, Latitude &lt;dbl&gt;, Longitude &lt;dbl&gt;, `Point
+## #   Location` &lt;chr&gt;, `Assessment Class % 1` &lt;dbl&gt;, `Assessment Class %
+## #   2` &lt;dbl&gt;, `Assessment Class % 3` &lt;dbl&gt;, `Assessment Class 1` &lt;chr&gt;,
+## #   `Assessment Class 2` &lt;chr&gt;, `Assessment Class 3` &lt;chr&gt;
+```
+---
+# Calculating representative sample size
+What size should be sample be with a margin of error of 3, and a 95% confidence interval?
+
+
+```r
+rsampcalc(N=nrow(PAData), e=3, ci=95, p=0.5,
+          over=0.1)-&gt;samplesize
+samplesize
+```
+
+```
+## [1] 1172
+```
+---
+# Pulling a stratified sample
+
+```r
+ssampcalc(PAData,n=samplesize, 
+          strata= `Assessment Class 1`, over=0 )
+```
+
+```
+## # A tibble: 5 x 4
+##   `Assessment Class 1`               Nh     wt[,1] nh[,1]
+##   &lt;chr&gt;                           &lt;int&gt;      &lt;dbl&gt;  &lt;dbl&gt;
+## 1 COMMERCIAL                      22270 0.0547         64
+## 2 FARMLAND                          567 0.00139         2
+## 3 NONRES MUNICIPAL/RES EDUCATION      2 0.00000491      0
+## 4 OTHER RESIDENTIAL                4386 0.0108         13
+## 5 RESIDENTIAL                    380006 0.933        1094
+```
+
+---
+# Plots and Graphs
+All plots and graphs are fully customizable. 
+Because they are built on code rather than manual manipulation (like Excel), 
+if the data changes, it is very simple to update visualizations.
+
+Lots of examples are available in the Productivity and Performance Audit reports and the City Financial Condition Report.
+
+.center[![graphexample](RDemoforOffice/graphexample.png)]
+---
+exclude: true
+
+
+---
+# Reading data from Google Sheets
+It is possible to read data into R directly from a Google Sheet rather than downloading it into a new format. If this is a shared sheet with edit access, you'll need to be cautious about people making changes to the sheet since this can mess you up later. You can get around this by making a copy of a client's Google Sheet that the client can't change, or by changing access to view or comment only.
+
+.center[![SM report](RDemoforOffice/Googlesheetscreenshot.png)]
+
+---
+#Extracting a range of cells
+
+```r
+CapSpend &lt;- read_sheet("https://docs.google.com/spreadsheets/d/12nBq-TivTNxE3FUYBxYSQrTX9R5-YXYlxUQqVFCfBlY/edit#gid=0", sheet= "DiverseRevSources", range= "A7:U11")
+
+kable(CapSpend, format="html", pad=0)
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; ...1 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2000 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2001 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2002 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2003 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2004 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2005 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2006 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2007 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2008 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2009 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2010 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2011 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2012 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2013 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2014 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2015 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2016 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2017 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2018 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2019 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 646380 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670899 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 676037 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670278 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 718553 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 761729 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 790041 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 834007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 920537 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 986580 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1045218 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1094811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1151214 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1226700 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1336494 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1436409 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1521998 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1572832 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1619096 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1671800 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 199440 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 161044 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 150711 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 178228 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 201655 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 234288 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 246855 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494713 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 603811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 679997 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 592368 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 682249 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670445 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 555417 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 371679 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 323948 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 470872 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 543235 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 826276 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 693382 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 406985 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426387 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 449077 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 435683 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 447668 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494128 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 502326 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 571078 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 544777 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 540314 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 577790 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 618830 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 669103 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 701441 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 732992 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 814263 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 789048 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 727385 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643882 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 623326 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 594391 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 921661 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 575485 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 864407 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 649568 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 712458 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1239025 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 830497 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 642392 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 680968 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 699634 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 777162 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643483 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 939756 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 994846 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1250430 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1253847 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1032530 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 970895 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 881225 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+#Rename the first column...
+
+```r
+#the first column imported without a header so I assigned it a name
+CapSpend &lt;- CapSpend %&gt;% rename("Type"=`...1`)
+kable(CapSpend, format="html", pad=0)
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Type &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2000 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2001 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2002 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2003 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2004 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2005 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2006 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2007 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2008 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2009 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2010 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2011 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2012 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2013 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2014 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2015 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2016 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2017 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2018 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2019 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 646380 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670899 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 676037 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670278 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 718553 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 761729 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 790041 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 834007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 920537 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 986580 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1045218 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1094811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1151214 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1226700 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1336494 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1436409 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1521998 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1572832 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1619096 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1671800 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 199440 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 161044 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 150711 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 178228 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 201655 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 234288 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 246855 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494713 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 603811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 679997 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 592368 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 682249 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670445 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 555417 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 371679 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 323948 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 470872 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 543235 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 826276 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 693382 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 406985 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426387 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 449077 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 435683 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 447668 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494128 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 502326 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 571078 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 544777 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 540314 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 577790 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 618830 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 669103 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 701441 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 732992 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 814263 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 789048 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 727385 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643882 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 623326 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 594391 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 921661 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 575485 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 864407 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 649568 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 712458 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1239025 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 830497 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 642392 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 680968 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 699634 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 777162 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643483 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 939756 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 994846 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1250430 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1253847 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1032530 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 970895 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 881225 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+#Formatting data
+The data we extracted from this Google sheet can be difficult to analyze, graph, or join with other data in this form.
+
+Depending on the use, it's easy to change data from a wide view to a long view and back again.
+
+### Wide view
+
+```r
+kable(CapSpend, format="html", pad=0)
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Type &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2000 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2001 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2002 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2003 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2004 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2005 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2006 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2007 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2008 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2009 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2010 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2011 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2012 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2013 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2014 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2015 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2016 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2017 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2018 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 2019 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 646380 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670899 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 676037 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670278 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 718553 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 761729 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 790041 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 834007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 920537 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 986580 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1045218 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1094811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1151214 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1226700 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1336494 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1436409 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1521998 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1572832 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1619096 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1671800 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 199440 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 161044 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 150711 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 178228 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 201655 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 234288 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 246855 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494713 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 603811 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 679997 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 592368 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 682249 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670445 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 555417 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 371679 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 323948 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 470872 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 543235 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 826276 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 693382 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 406985 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426387 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 449077 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 435683 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 447668 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494128 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 502326 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 571078 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 544777 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 540314 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 577790 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 618830 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 669103 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 701441 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 732992 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 814263 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 789048 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 727385 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643882 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 623326 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 594391 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 921661 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 575485 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 864407 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 649568 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 712458 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1239025 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 830497 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 642392 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 680968 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 699634 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 777162 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643483 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 939756 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 994846 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1250430 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1253847 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1032530 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 970895 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 881225 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+### Long view
+
+```r
+CapSpend %&gt;% 
+  pivot_longer(-Type, names_to="Year", values_to="Values")-&gt;CapSpendLong
+kable(CapSpendLong, format="html", pad=0)
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Type &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Year &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Values &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2000 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 646380 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2001 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670899 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2002 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 676037 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2003 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670278 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2004 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 718553 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2005 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 761729 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2006 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 790041 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 834007 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 920537 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2009 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 986580 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2010 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1045218 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2011 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1094811 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2012 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1151214 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2013 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1226700 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2014 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1336494 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2015 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1436409 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2016 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1521998 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1572832 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2018 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1619096 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Net taxes available for municipal purposes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1671800 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2000 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 199440 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2001 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 161044 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2002 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 150711 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2003 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 178228 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2004 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 201655 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2005 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 234288 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2006 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 246855 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494713 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 603811 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2009 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 679997 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2010 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 592368 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2011 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 682249 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2012 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 670445 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2013 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 555417 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2014 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 371679 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2015 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 323948 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2016 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 470872 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 543235 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2018 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 826276 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Government transfers &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 693382 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2000 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 406985 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2001 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426387 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2002 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 449077 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2003 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 435683 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2004 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 447668 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2005 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 494128 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2006 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 502326 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 571078 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 544777 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2009 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 540314 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2010 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 577790 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2011 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 618830 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2012 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 669103 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2013 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 701441 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2014 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 732992 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2015 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 814263 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2016 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 789048 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 727385 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2018 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643882 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; User fees and sale of goods and services &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 623326 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2000 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 594391 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2001 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 921661 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2002 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 575485 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2003 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 864407 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2004 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 649568 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2005 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 712458 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2006 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1239025 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2007 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 830497 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2008 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 642392 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2009 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 680968 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2010 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 699634 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2011 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 777162 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2012 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 643483 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2013 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 939756 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2014 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 994846 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2015 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1250430 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2016 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1253847 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1032530 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2018 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 970895 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 881225 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+# Relationships
+Network diagrams plot out how closely related different entities are.  
+We can make a diagram that visualizes how often each of us in the office have worked with each other on the same projects for the past 3 years.
+
+.center[![working relationships](RDemoforOffice/WR2.png)]
+---
+# Maps
+You can plot locations on a map with R.
+The latitude and longitude of all of the publicly available sandboxes can be downloaded from OpenData.
+A shapefile that is based on latitude and longitude of the City Boundaries is also available from OpenData.
+R lets you plot each of the sandbox locations onto the City of Edmonton shape (map)
+
+.center[![sandboxes](RDemoforOffice/sandboxes.png)]
+
+---
+# Working with data in .pdfs
+###Problem:
+I wanted to use the highlighting function in Acrobat to review a set of .pdf documents, select text, and give each selection a code or topic that I could sort by later to compare documents. 
+
+.center[![pdfs](RDemoforOffice/adobeimage.png)]
+
+
+Although Acrobat allows the highlighting and coding, there was no clear way to extract the selected text and codes from all of the reviewed documents and put them in a table to sort and review.
+---
+###Solution:
+Because R has tools (packages) to extract data from .pdf's, it was possible to read all of the comments from Acrobat generated summaries, and format the information into a spreadsheet.
+
+![pdfs2](RDemoforOffice/pdfsheet.png)
+
+---
+
+class: center, middle, inverse
+
+# Questions?
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
